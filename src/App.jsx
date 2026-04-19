@@ -1,245 +1,144 @@
 import { useState, useMemo } from 'react';
 import {
-  DEFAULT_PARAMS, calcDeal, calcAllScenarios, dlomSensitivity, capTableWaterfall, fmt
-} from './lib/dealModel';
-import Sidebar from './components/Sidebar';
-import MetricCard from './components/MetricCard';
-import ScenarioMatrix from './components/ScenarioMatrix';
-import ReturnWaterfall from './components/ReturnWaterfall';
-import CapTableChart from './components/CapTableChart';
-import IrrComparison from './components/IrrComparison';
-import DlomSensitivity from './components/DlomSensitivity';
-import DealTimeline from './components/DealTimeline';
-import ExportButton from './components/ExportButton';
-
-const EXTENDED_DEFAULTS = {
-  ...DEFAULT_PARAMS,
-  ebitdaCr: 14,
-  waccPct: 24,
-};
+  DEFAULT_PARAMS, calcDCF, buildMatrix, buildSensLines, fmt,
+} from './lib/dcfModel';
+import DCFSidebar    from './components/DCFSidebar';
+import MetricCard    from './components/MetricCard';
+import FCFFTable     from './components/FCFFTable';
+import ValueWaterfall from './components/ValueWaterfall';
+import SensitivityChart  from './components/SensitivityChart';
+import SensitivityMatrix from './components/SensitivityMatrix';
+import ExportButton  from './components/ExportButton';
 
 export default function App() {
-  const [params, setParams] = useState(EXTENDED_DEFAULTS);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [params, setParams]       = useState(DEFAULT_PARAMS);
+  const [sidebarOpen, setSidebar] = useState(false);
 
-  const result    = useMemo(() => calcDeal(params), [params]);
-  const scenarios = useMemo(() => calcAllScenarios(params), [params]);
-  const dlomData  = useMemo(() => dlomSensitivity(params.ebitdaCr || 14, params.waccPct || 24, params.tgrPct, params.preMoneyShares), [params]);
-  const capTable  = useMemo(() => capTableWaterfall(params), [params]);
+  const onParam = key => e => setParams(prev => ({ ...prev, [key]: +e.target.value }));
 
-  const handleParam  = key => e => setParams(prev => ({ ...prev, [key]: +e.target.value }));
-  const handleToggle = (key, val) => setParams(prev => ({ ...prev, [key]: val }));
+  const result   = useMemo(() => calcDCF(params), [params]);
+  const matrix   = useMemo(() => buildMatrix(params.dlomPct), [params.dlomPct]);
+  const sensLines = useMemo(() => buildSensLines(params.waccPct, params.dlomPct), [params.waccPct, params.dlomPct]);
+
+  const vpsValid = result.vps > 0;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8f7f4' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F8F7F4' }}>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            zIndex: 30,
-          }}
+          onClick={() => setSidebar(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 30 }}
         />
       )}
 
       {/* Sidebar */}
       <div className={`sidebar-wrapper${sidebarOpen ? ' open' : ''}`}>
-        <Sidebar
-          params={params}
-          onParam={handleParam}
-          onToggle={handleToggle}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+        <DCFSidebar params={params} onParam={onParam} />
       </div>
 
-      {/* Main content */}
+      {/* Main */}
       <main style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
 
-        {/* Top bar */}
+        {/* Topbar */}
         <div style={{
-          background: 'white',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-          padding: '12px 24px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'sticky', top: 0, zIndex: 20,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          background: 'white', borderBottom: '1px solid rgba(0,0,0,0.08)',
+          padding: '10px 24px', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 20,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Hamburger */}
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => setSidebar(v => !v)}
               className="hamburger"
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: 4, borderRadius: 6, display: 'none',
+                display: 'none', background: 'none', border: 'none',
+                cursor: 'pointer', padding: 4, borderRadius: 6,
               }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a18" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a18', letterSpacing: '-0.2px' }}>
-                Wallnut Building Solutions India
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a18', letterSpacing: '-0.2px' }}>
+                Wallnut Building Solutions India Pvt. Ltd.
               </div>
-              <div style={{ fontSize: 11, color: '#5f5e5a', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span>CoLeads EdgeWorks · Deal Model</span>
-                <span style={{
-                  background: params.ratchetTriggered ? '#FCEBEB' : '#EAF3DE',
-                  color: params.ratchetTriggered ? '#A32D2D' : '#0F6E56',
-                  padding: '1px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10,
-                }}>
-                  {params.ratchetTriggered ? 'Ratchet Active' : 'Base scenario'}
-                </span>
-                {params.supplierDeal && (
-                  <span style={{
-                    background: '#E6F1FB', color: '#185FA5',
-                    padding: '1px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10,
-                  }}>
-                    Supplier deal
-                  </span>
-                )}
+              <div style={{ fontSize: 11, color: '#888780' }}>
+                Discounted Cash Flow Analysis  ·  TGR {params.tgrPct.toFixed(1)}%  ·  WACC {params.waccPct.toFixed(1)}%  ·  DLOM {params.dlomPct}%
               </div>
             </div>
           </div>
-          <ExportButton targetId="pdf-export-area" />
+          <ExportButton targetId="pdf-area" />
         </div>
 
-        {/* Dashboard */}
-        <div style={{ padding: '24px' }} id="pdf-export-area">
+        {/* Content */}
+        <div style={{ padding: '24px' }} id="pdf-area">
 
-          {/* Summary metric cards */}
+          {/* Metric cards */}
           <div className="metrics-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            marginBottom: 24,
+            display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24,
           }}>
             <MetricCard
-              label="Total capital deployed"
-              value={fmt.cr(result.totalCapitalCr)}
-              sub={`₹${params.eqAmtCr} Cr equity + ₹${params.noteAmtCr} Cr note`}
+              label="Terminal Value (PV)"
+              value={fmt.L(result.tvPV, 2)}
+              sub={`TGR ${params.tgrPct.toFixed(1)}%  ·  WACC ${params.waccPct.toFixed(1)}%`}
               accent="blue"
             />
             <MetricCard
-              label="Equity stake"
-              value={fmt.pct(result.eqStakePct)}
-              sub={`${fmt.num(result.totalInvestorShares)} shares @ ${fmt.rs(result.actualEqPrice)}`}
+              label="Enterprise Value"
+              value={fmt.L(result.ev, 2)}
+              sub={`Explicit PV + Terminal Value PV`}
               accent="blue"
-              ratchetActive={params.ratchetTriggered}
             />
             <MetricCard
-              label="Total post-A stake"
-              value={fmt.pct(result.totalStakePct)}
-              sub={`${fmt.num(result.totalInvestorShares + result.noteShares)} total shares`}
+              label="Net Equity Value"
+              value={fmt.L(result.netEquity, 2)}
+              sub={`Post DLOM ${params.dlomPct}%, debt & cash`}
               accent="purple"
             />
             <MetricCard
-              label="Note converts at"
-              value={fmt.rs(result.convPricePerShare)}
-              sub={`${fmt.pct(result.convDiscPct)} discount to Series A`}
-              accent="amber"
-            />
-            <MetricCard
-              label="Annual interest"
-              value={fmt.cr(result.annualInterestCr)}
-              sub={`${fmt.pct(params.couponPct)} p.a. · Total: ${fmt.cr(result.totalInterestCr)}`}
-              accent="green"
-            />
-            <MetricCard
-              label="IRR"
-              value={fmt.pct(result.irrPct)}
-              sub={`Over ${params.exitMonths} months`}
-              accent="purple"
-            />
-            <MetricCard
-              label="MOIC"
-              value={fmt.moic(result.moic)}
-              sub={`${fmt.cr(result.totalReturnCr)} total return`}
-              accent="purple"
-            />
-            <MetricCard
-              label="Seller dilution"
-              value={fmt.pct(result.sellerDilutionPct)}
-              sub="Combined equity + note stake"
-              accent="red"
+              label="Value Per Share"
+              value={vpsValid ? fmt.rs(result.vps, 2) : '—'}
+              sub={`${(result.netEquity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L ÷ 10 L shares`}
+              accent={vpsValid ? 'blue' : 'red'}
             />
           </div>
 
-          {/* Return waterfall */}
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 20,
-            border: '1px solid rgba(0,0,0,0.08)', marginBottom: 20,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-          }}>
-            <ReturnWaterfall result={result} />
-          </div>
-
-          {/* IRR + Cap Table */}
-          <div className="charts-row" style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20,
-          }}>
-            <div style={{
-              background: 'white', borderRadius: 12, padding: 20,
-              border: '1px solid rgba(0,0,0,0.08)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-            }}>
-              <IrrComparison scenarios={scenarios} params={params} />
+          {/* FCFF Table + Value Waterfall */}
+          <div className="charts-row" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 20, marginBottom: 20 }}>
+            <div style={card}>
+              <FCFFTable result={result} params={params} />
             </div>
-            <div style={{
-              background: 'white', borderRadius: 12, padding: 20,
-              border: '1px solid rgba(0,0,0,0.08)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-            }}>
-              <CapTableChart capTable={capTable} />
+            <div style={card}>
+              <ValueWaterfall result={result} params={params} />
             </div>
           </div>
 
-          {/* DLOM sensitivity */}
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 20,
-            border: '1px solid rgba(0,0,0,0.08)', marginBottom: 20,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-          }}>
-            <DlomSensitivity dlomData={dlomData} params={params} />
+          {/* Sensitivity chart */}
+          <div style={{ ...card, marginBottom: 20 }}>
+            <SensitivityChart sensLines={sensLines} params={params} />
           </div>
 
-          {/* Scenario matrix */}
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 20,
-            border: '1px solid rgba(0,0,0,0.08)', marginBottom: 20,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-          }}>
-            <ScenarioMatrix scenarios={scenarios} params={params} />
-          </div>
-
-          {/* Deal timeline */}
-          <div style={{
-            background: 'white', borderRadius: 12, padding: 20,
-            border: '1px solid rgba(0,0,0,0.08)', marginBottom: 20,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-          }}>
-            <DealTimeline exitMonths={params.exitMonths} />
+          {/* Sensitivity matrix */}
+          <div style={{ ...card, marginBottom: 20 }}>
+            <SensitivityMatrix matrix={matrix} params={params} />
           </div>
 
           {/* Footer */}
           <div style={{
-            textAlign: 'center', fontSize: 11, color: '#888780',
-            padding: '12px 0', borderTop: '1px solid rgba(0,0,0,0.08)',
+            textAlign: 'center', fontSize: 11, color: '#b0aea8',
+            padding: '12px 0', borderTop: '1px solid rgba(0,0,0,0.07)',
           }}>
-            Prepared by CoLeads EdgeWorks LLP · Confidential · Not for distribution
+            Wallnut Building Solutions India Pvt. Ltd.  ·  DCF Analysis  ·  CoLeads EdgeWorks LLP  ·  For discussion purposes only
           </div>
         </div>
       </main>
 
       <style>{`
-        .sidebar-wrapper {
-          flex-shrink: 0;
-        }
+        .sidebar-wrapper { flex-shrink: 0; }
         @media (max-width: 768px) {
           .hamburger { display: flex !important; }
           .sidebar-wrapper {
@@ -248,17 +147,21 @@ export default function App() {
             transform: translateX(-100%);
             transition: transform 0.25s ease;
             z-index: 40;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+            box-shadow: 2px 0 16px rgba(0,0,0,0.15);
           }
           .sidebar-wrapper.open { transform: translateX(0); }
-          .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .charts-row { grid-template-columns: 1fr !important; }
-          .scenario-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (max-width: 480px) {
-          .scenario-grid { grid-template-columns: 1fr !important; }
+          .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .charts-row   { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
   );
 }
+
+const card = {
+  background: 'white',
+  borderRadius: 12,
+  padding: 22,
+  border: '1px solid rgba(0,0,0,0.07)',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+};
