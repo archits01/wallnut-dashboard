@@ -77,17 +77,6 @@ export default function DCFSidebar({ params, onParam }) {
           display={v => v + '%'}
         />
 
-        {/* Formula note */}
-        <div style={{
-          background: '#F8F7F4', borderRadius: 6, padding: '10px 12px',
-          fontSize: 11, color: '#888780', lineHeight: 1.7, marginTop: 4, marginBottom: 4,
-          fontFamily: 'ui-monospace, monospace',
-        }}>
-          <div>TV = FCFF₅ × (1+g) / (r−g)</div>
-          <div>EV = Σ PV(FCFF) + PV(TV)</div>
-          <div>Equity = EV×(1−DLOM) − Debt + Cash</div>
-        </div>
-
         <SectionLabel>Projected FCFFs (₹ Lakhs) — Fixed</SectionLabel>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

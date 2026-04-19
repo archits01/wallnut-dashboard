@@ -48,55 +48,44 @@ export default function FCFFTable({ result, params }) {
         </table>
       </div>
 
-      {/* Value build-up below table */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 14,
-      }} className="bridge-grid">
+      {/* Value bridge summary */}
+      <div style={{ marginTop: 14, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, overflow: 'hidden' }}>
         {[
-          { label: 'Explicit Period PV', value: fmt.L(explicitPV, 2), sign: '+', color: '#185FA5' },
-          { label: 'Terminal Value PV',  value: fmt.L(tvPV, 2),        sign: '+', color: '#185FA5' },
-          { label: 'Enterprise Value',   value: fmt.L(ev, 2),           sign: '=', color: '#042C53' },
-          { label: `DLOM (${params.dlomPct}%)`, value: fmt.L(dlomAdj, 2), sign: '−', color: '#A32D2D' },
-          { label: 'LT Borrowings',      value: fmt.L(LTD, 2),          sign: '−', color: '#A32D2D' },
-          { label: 'Cash & Equiv.',       value: fmt.L(CASH, 2),         sign: '+', color: '#0F6E56' },
+          { label: 'Explicit Period PV',       value: fmt.L(explicitPV, 2), sign: '+', color: '#185FA5', bg: 'white' },
+          { label: 'Terminal Value PV',         value: fmt.L(tvPV, 2),       sign: '+', color: '#185FA5', bg: '#FAFAF8' },
+          { label: 'Enterprise Value',          value: fmt.L(ev, 2),         sign: '=', color: '#042C53', bg: '#EEF4FB', bold: true },
+          { label: `Less: DLOM (${params.dlomPct}%)`, value: fmt.L(dlomAdj, 2), sign: '−', color: '#A32D2D', bg: 'white' },
+          { label: 'Less: LT Borrowings',       value: fmt.L(LTD, 2),        sign: '−', color: '#A32D2D', bg: '#FAFAF8' },
+          { label: 'Add: Cash & Equivalents',   value: fmt.L(CASH, 2),       sign: '+', color: '#0F6E56', bg: 'white' },
         ].map(item => (
           <div key={item.label} style={{
-            background: '#F8F7F4', borderRadius: 8, padding: '10px 12px',
-            border: `1px solid ${item.sign === '=' ? item.color : 'rgba(0,0,0,0.06)'}`,
-            display: 'flex', flexDirection: 'column', gap: 3,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '9px 14px', background: item.bg,
+            borderBottom: '1px solid rgba(0,0,0,0.05)',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, color: '#888780', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{item.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: item.color, fontVariantNumeric: 'tabular-nums' }}>
-                {item.sign !== '+' && item.sign !== '=' ? item.sign : ''}{item.sign === '+' ? '' : ''}{item.value}
-              </span>
-            </div>
-            <div style={{ fontSize: 10, color: item.color, fontWeight: 500 }}>
-              {item.sign === '+' ? 'Addition' : item.sign === '−' ? 'Deduction' : 'Subtotal'}
-            </div>
+            <span style={{ fontSize: 12, color: item.bold ? '#042C53' : '#5f5e5a', fontWeight: item.bold ? 700 : 400 }}>
+              {item.label}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: item.bold ? 700 : 600, color: item.color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              {item.sign === '−' ? '−' : item.sign === '+' && !item.bold ? '+' : ''}{item.value}
+            </span>
           </div>
         ))}
-      </div>
-
-      {/* Net equity result */}
-      <div style={{
-        marginTop: 10, background: '#042C53', borderRadius: 8, padding: '14px 16px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 3 }}>
-            Net Equity Value
+        {/* Net equity row */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 14px', background: '#042C53',
+        }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>Net Equity Value</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+              Value per share: <strong style={{ color: 'rgba(255,255,255,0.85)' }}>
+                ₹{netEquity > 0 ? (netEquity * 0.1).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+              </strong>
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-            EV × (1 − {params.dlomPct}%) − {fmt.L(LTD, 2)} + {fmt.L(CASH, 2)}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'white', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'white', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             {fmt.L(netEquity, 2)}
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-            Value per share: <strong style={{ color: 'white' }}>₹{netEquity > 0 ? (netEquity * 0.1).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</strong>
           </div>
         </div>
       </div>

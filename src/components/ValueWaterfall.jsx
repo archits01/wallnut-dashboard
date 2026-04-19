@@ -104,12 +104,12 @@ export default function ValueWaterfall({ result, params }) {
         ))}
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={320}>
         <BarChart
           data={steps}
           layout="vertical"
-          margin={{ top: 4, right: 120, bottom: 4, left: 140 }}
-          barSize={22}
+          margin={{ top: 4, right: 90, bottom: 4, left: 130 }}
+          barSize={24}
         >
           <XAxis
             type="number"
@@ -138,15 +138,25 @@ export default function ValueWaterfall({ result, params }) {
               <Cell key={i} fill={typeColor[s.type]} />
             ))}
             <LabelList
-              dataKey="rawVal"
-              position="right"
-              formatter={(v, _, entry) => {
-                if (v == null) return '';
-                const s = steps.find(s => s.rawVal === v);
-                const sign = s?.sign;
-                return (sign === '−' ? '−' : sign === '+' ? '+' : '') + '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' L';
+              content={(props) => {
+                const { x, y, width, height, value, index } = props;
+                const s = steps[index];
+                if (!s || value == null) return null;
+                const label = s.sign + (s.sign ? '' : '') + '₹' + Math.round(s.rawVal).toLocaleString('en-IN') + ' L';
+                return (
+                  <text
+                    x={x + width + 6}
+                    y={y + height / 2}
+                    dominantBaseline="middle"
+                    fontSize={11}
+                    fontWeight={600}
+                    fill="#1a1a18"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {label}
+                  </text>
+                );
               }}
-              style={{ fontSize: 11, fontWeight: 600, fill: '#1a1a18', fontVariantNumeric: 'tabular-nums' }}
             />
           </Bar>
         </BarChart>
